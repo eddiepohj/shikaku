@@ -1,5 +1,3 @@
-const PALETTE = ['#F4D6CC', '#D9E4D0', '#CFDDE8', '#EEDCB5', '#E1D2E8', '#D5E8E0', '#E8D5C7', '#CFD4E8'];
-
 export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
   const ctx = canvas.getContext('2d');
   let cellSize = 0;
@@ -56,24 +54,6 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
     return !(a.right < b.left || b.right < a.left || a.bottom < b.top || b.bottom < a.top);
   }
 
-  function colorForRect(rect, allRects) {
-    // Greedy: pick the first palette color not used by an adjacent rectangle.
-    const used = new Set();
-    for (const other of allRects) {
-      if (other === rect) continue;
-      // adjacent = share an edge (not just corner)
-      const horizAdj = (rect.right + 1 === other.left || other.right + 1 === rect.left)
-                   && !(rect.bottom < other.top || other.bottom < rect.top);
-      const vertAdj = (rect.bottom + 1 === other.top || other.bottom + 1 === rect.top)
-                   && !(rect.right < other.left || other.right < rect.left);
-      if (horizAdj || vertAdj) used.add(other.__color);
-    }
-    for (const color of PALETTE) {
-      if (!used.has(color)) return color;
-    }
-    return PALETTE[0];
-  }
-
   function draw() {
     const puzzle = getPuzzle();
     if (!puzzle) return;
@@ -88,21 +68,28 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
     const bg = getComputedStyle(document.body).getPropertyValue('--bg').trim();
     const fg = getComputedStyle(document.body).getPropertyValue('--grid').trim();
     const errColor = getComputedStyle(document.body).getPropertyValue('--error').trim();
+    // Derive a soft theme-aware grey overlay from --grid (#RRGGBB + low alpha).
+    const overlay = fg + '20';
 
     ctx.clearRect(0, 0, cssW, cssH);
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, cssW, cssH);
 
-    // Assign colors to committed rectangles.
+    // Fill committed rectangles with neutral grey overlay + dark border (errors red).
     const rects = state.rectangles();
-    for (const r of rects) r.__color = null;
-    for (const r of rects) r.__color = colorForRect(r, rects);
-
-    // Fill committed rectangles.
     for (const r of rects) {
       const isError = errorAnchorKeys.has(`${r.anchor.row},${r.anchor.col}`);
-      ctx.fillStyle = isError ? errColor : r.__color;
-      ctx.fillRect(r.left * cellSize, r.top * cellSize, (r.right - r.left + 1) * cellSize, (r.bottom - r.top + 1) * cellSize);
+      const x = r.left * cellSize;
+      const y = r.top * cellSize;
+      const w = (r.right - r.left + 1) * cellSize;
+      const h = (r.bottom - r.top + 1) * cellSize;
+      ctx.fillStyle = isError ? errColor : overlay;
+      ctx.fillRect(x, y, w, h);
+      if (!isError) {
+        ctx.strokeStyle = fg;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+      }
     }
 
     // Drag preview.
@@ -122,8 +109,8 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
       } else {
         invalid = overlaps || rectArea(prev) !== cluesInside[0].number;
       }
-      ctx.fillStyle = invalid ? errColor : '#D9D9D9';
-      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = invalid ? errColor : overlay;
+      ctx.globalAlpha = 0.5;
       ctx.fillRect(prev.left * cellSize, prev.top * cellSize, (prev.right - prev.left + 1) * cellSize, (prev.bottom - prev.top + 1) * cellSize);
       ctx.globalAlpha = 1;
     }
@@ -178,16 +165,22 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
     const puzzle = getPuzzle();
     const state = getState();
 
-    // Tap-to-delete: zero-distance pointerup inside a committed rectangle.
+    // Tap-to-delete: zero-distance pointerup on a NUMBERED CELL whose clue has a
+    // committed rectangle. Tapping anywhere else (empty cell, or numbered cell
+    // with no committed rectangle) does nothing.
     if (isJustAnchor) {
-      const existing = state.rectangles().find(
-        (r) => anchor.row >= r.top && anchor.row <= r.bottom &&
-               anchor.col >= r.left && anchor.col <= r.right,
-      );
-      if (existing && onDelete) {
-        onDelete(existing.anchor);
-        return;
+      const clueAtTap = puzzle.clues.find((c) => c.row === anchor.row && c.col === anchor.col);
+      if (clueAtTap) {
+        const existing = state.rectangles().find(
+          (r) => r.anchor.row === clueAtTap.row && r.anchor.col === clueAtTap.col,
+        );
+        if (existing && onDelete) {
+          onDelete({ row: clueAtTap.row, col: clueAtTap.col });
+          return;
+        }
       }
+      draw();
+      return;
     }
 
     // Otherwise: commit if the preview contains exactly one clue, with matching
