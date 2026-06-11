@@ -50,14 +50,7 @@ function startNewPuzzle(diff = difficulty) {
   const [w, h] = SIZES[diff];
   puzzle = generatePuzzle(w, h, (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
   state = createState(puzzle);
-  ui = createUI({
-    canvas,
-    getState: () => state,
-    getPuzzle: () => puzzle,
-    onCommit: handleCommit,
-    onDelete: handleDelete,
-  });
-  ui.fit();
+  if (ui) ui.fit();
   save();
 }
 
@@ -68,14 +61,6 @@ function restoreOrNew() {
     difficultySel.value = difficulty;
     puzzle = blob.puzzle;
     state = createState(puzzle, { rectangles: blob.rectangles || [] });
-    ui = createUI({
-      canvas,
-      getState: () => state,
-      getPuzzle: () => puzzle,
-      onCommit: handleCommit,
-      onDelete: handleDelete,
-    });
-    ui.fit();
   } else {
     startNewPuzzle('medium');
   }
@@ -128,6 +113,14 @@ difficultySel.addEventListener('change', (ev) => {
 btnNext.addEventListener('click', () => { solvedModal.close(); startNewPuzzle(difficulty); });
 
 restoreOrNew();
+ui = createUI({
+  canvas,
+  getState: () => state,
+  getPuzzle: () => puzzle,
+  onCommit: handleCommit,
+  onDelete: handleDelete,
+});
+ui.fit();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
