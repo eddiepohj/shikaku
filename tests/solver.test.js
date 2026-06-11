@@ -59,3 +59,24 @@ test('cap parameter bounds the count', () => {
   const puzzle = { width: 3, height: 1, clues: [{ row: 0, col: 1, number: 1 }] };
   assert.equal(countSolutions(puzzle, 1), 0);
 });
+
+test('solver completes a 7x7 puzzle quickly', () => {
+  // Four-quadrant partition of a 7x7 grid (uniquely solvable, hand-verified):
+  //   top-left  3x3 (area  9), top-right  3x4 (area 12),
+  //   bottom-left 4x3 (area 12), bottom-right 4x4 (area 16).
+  // Clues placed in the corners.
+  const puzzle = {
+    width: 7, height: 7,
+    clues: [
+      { row: 0, col: 0, number: 9 },
+      { row: 0, col: 6, number: 12 },
+      { row: 6, col: 0, number: 12 },
+      { row: 6, col: 6, number: 16 },
+    ],
+  };
+  const t0 = Date.now();
+  const n = countSolutions(puzzle);
+  const elapsed = Date.now() - t0;
+  assert.equal(n, 1);
+  assert.ok(elapsed < 200, `solver took ${elapsed}ms, expected <200ms`);
+});

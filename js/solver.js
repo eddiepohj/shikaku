@@ -49,15 +49,23 @@ export function countSolutions(puzzle, cap = 2) {
     return true;
   }
 
+  // Precompute rectangles per clue and sort clues by ascending count
+  // (most-constrained-variable heuristic).
+  const indexed = clues.map((clue, originalIdx) => ({
+    originalIdx,
+    rects: rectanglesForClue(clue),
+  }));
+  indexed.sort((a, b) => a.rects.length - b.rects.length);
+
   function backtrack(idx) {
     if (count >= cap) return;
-    if (idx === clues.length) {
+    if (idx === indexed.length) {
       if (allCovered()) count++;
       return;
     }
-    for (const rect of rectanglesForClue(clues[idx])) {
+    for (const rect of indexed[idx].rects) {
       if (!fits(rect)) continue;
-      paint(rect, idx);
+      paint(rect, indexed[idx].originalIdx);
       backtrack(idx + 1);
       paint(rect, -1);
       if (count >= cap) return;
