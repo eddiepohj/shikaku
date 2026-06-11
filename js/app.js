@@ -10,7 +10,16 @@ const btnNew = document.getElementById('btn-new');
 const btnUndo = document.getElementById('btn-undo');
 const btnRestart = document.getElementById('btn-restart');
 const btnCheck = document.getElementById('btn-check');
-const difficultySel = document.getElementById('difficulty');
+const diffButtons = {
+  easy: document.getElementById('diff-easy'),
+  medium: document.getElementById('diff-medium'),
+  hard: document.getElementById('diff-hard'),
+};
+function setDifficultyUI(diff) {
+  for (const [k, btn] of Object.entries(diffButtons)) {
+    btn.setAttribute('aria-pressed', k === diff ? 'true' : 'false');
+  }
+}
 const solvedModal = document.getElementById('solved-modal');
 const btnNext = document.getElementById('btn-next');
 
@@ -66,7 +75,7 @@ function clearSave() {
 
 function startNewPuzzle(diff = difficulty) {
   difficulty = diff;
-  difficultySel.value = diff;
+  setDifficultyUI(diff);
   const [w, h] = SIZES[diff];
 
   if (nextPuzzle && nextPuzzle.difficulty === diff) {
@@ -85,7 +94,7 @@ function restoreOrNew() {
   const blob = load();
   if (blob && blob.puzzle) {
     difficulty = blob.difficulty || 'medium';
-    difficultySel.value = difficulty;
+    setDifficultyUI(difficulty);
     puzzle = blob.puzzle;
     state = createState(puzzle, { rectangles: blob.rectangles || [] });
     prepareNextPuzzle(difficulty);
@@ -129,17 +138,18 @@ btnCheck.addEventListener('click', () => {
     alert(n === 0 ? 'No errors yet — keep going.' : `${n} rectangle(s) flagged.`);
   }
 });
-difficultySel.addEventListener('change', (ev) => {
+function onDifficultyClick(targetDiff) {
+  if (targetDiff === difficulty) return;
   if (state.rectangles().length > 0 && !state.isComplete()) {
-    if (!confirm('Change difficulty and discard current puzzle?')) {
-      difficultySel.value = difficulty;
-      return;
-    }
+    if (!confirm('Change difficulty and discard current puzzle?')) return;
   }
   nextPuzzle = null;
   nextRequestSeq++;
-  startNewPuzzle(ev.target.value);
-});
+  startNewPuzzle(targetDiff);
+}
+for (const [k, btn] of Object.entries(diffButtons)) {
+  btn.addEventListener('click', () => onDifficultyClick(k));
+}
 btnNext.addEventListener('click', () => { solvedModal.close(); startNewPuzzle(difficulty); });
 
 restoreOrNew();

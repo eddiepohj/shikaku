@@ -92,27 +92,33 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
       }
     }
 
-    // Drag preview.
+    // Drag preview: soft fill + dashed border.
     if (drag) {
       const prev = rectFromAnchorTo(drag.anchor, drag.current);
       const cluesInside = puzzle.clues.filter(
         (c) => c.row >= prev.top && c.row <= prev.bottom && c.col >= prev.left && c.col <= prev.right,
       );
-      // For overlap check, exclude any rectangle whose clue sits inside the preview
-      // (so that re-drawing over an existing committed rect doesn't immediately tint red).
-      const insideAnchorKeys = new Set(cluesInside.map((c) => `${c.row},${c.col}`));
-      const otherRects = rects.filter((r) => !insideAnchorKeys.has(`${r.anchor.row},${r.anchor.col}`));
+      const otherRects = rects.filter(
+        (r) => !(cluesInside.length === 1 && r.anchor.row === cluesInside[0].row && r.anchor.col === cluesInside[0].col),
+      );
       const overlaps = otherRects.some((o) => rectsOverlap(o, prev));
-      let invalid;
-      if (cluesInside.length !== 1) {
-        invalid = true;
-      } else {
-        invalid = overlaps || rectArea(prev) !== cluesInside[0].number;
-      }
-      ctx.fillStyle = invalid ? errColor : overlay;
-      ctx.globalAlpha = 0.5;
-      ctx.fillRect(prev.left * cellSize, prev.top * cellSize, (prev.right - prev.left + 1) * cellSize, (prev.bottom - prev.top + 1) * cellSize);
+      const wrongArea = cluesInside.length !== 1 || rectArea(prev) !== cluesInside[0].number;
+      const isError = overlaps || wrongArea;
+      const x = prev.left * cellSize;
+      const y = prev.top * cellSize;
+      const w = (prev.right - prev.left + 1) * cellSize;
+      const h = (prev.bottom - prev.top + 1) * cellSize;
+      // Soft fill (~6% alpha on the ink overlay base, error tint at 35%).
+      ctx.fillStyle = isError ? errColor : fg;
+      ctx.globalAlpha = isError ? 0.35 : 0.06;
+      ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
+      // Dashed border, ink (or error) colour.
+      ctx.strokeStyle = isError ? errColor : fg;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+      ctx.setLineDash([]);
     }
 
     // Grid lines.
@@ -129,7 +135,7 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
     ctx.fillStyle = fg;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `bold ${Math.floor(cellSize * 0.55)}px -apple-system, system-ui, sans-serif`;
+    ctx.font = `500 ${Math.floor(cellSize * 0.55)}px -apple-system, system-ui, sans-serif`;
     for (const clue of puzzle.clues) {
       ctx.fillText(String(clue.number), clue.col * cellSize + cellSize / 2, clue.row * cellSize + cellSize / 2);
     }
