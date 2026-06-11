@@ -79,7 +79,9 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
     if (!puzzle) return;
     const state = getState();
     const errors = state.currentErrors();
-    const errorRects = new Set(errors.map((e) => e.rect));
+    const errorAnchorKeys = new Set(
+      errors.map((e) => `${e.rect.anchor.row},${e.rect.anchor.col}`),
+    );
 
     const cssW = cellSize * puzzle.width;
     const cssH = cellSize * puzzle.height;
@@ -98,7 +100,8 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
 
     // Fill committed rectangles.
     for (const r of rects) {
-      ctx.fillStyle = errorRects.has(r) ? errColor : r.__color;
+      const isError = errorAnchorKeys.has(`${r.anchor.row},${r.anchor.col}`);
+      ctx.fillStyle = isError ? errColor : r.__color;
       ctx.fillRect(r.left * cellSize, r.top * cellSize, (r.right - r.left + 1) * cellSize, (r.bottom - r.top + 1) * cellSize);
     }
 
