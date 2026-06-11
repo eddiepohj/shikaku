@@ -1,4 +1,4 @@
-const CACHE = 'shikaku-v1';
+const CACHE = 'shikaku-v2';
 const SHELL = [
   './',
   './index.html',
@@ -30,15 +30,23 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
+  // Network-first for everything: try the network, update cache, fall back to cache when offline.
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-      // Update cache for shell resources only.
-      const url = new URL(req.url);
-      if (SHELL.some((s) => url.pathname.endsWith(s.replace(/^\.\//, '/')))) {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
-      }
-      return res;
-    }).catch(() => cached)),
+    fetch(req)
+      .then((res) => {
+        // Only cache same-origin successful responses for the shell.
+        const url = new URL(req.url);
+        if (
+          res &&
+          res.status === 200 &&
+          url.origin === self.location.origin
+        ) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req)),
   );
 });
