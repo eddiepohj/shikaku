@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1A1A" media="(prefers-color-scheme: dark)" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="app.css" />
+  <title>Shikaku</title>
+</head>
+<body>
+  <header class="topbar">
+    <button id="btn-new" type="button" aria-label="New puzzle">New</button>
+    <button id="btn-undo" type="button" aria-label="Undo">Undo</button>
+    <button id="btn-restart" type="button" aria-label="Restart">Restart</button>
+    <button id="btn-check" type="button" aria-label="Check">Check</button>
+    <select id="difficulty" aria-label="Difficulty">
+      <option value="easy">Easy (7×7)</option>
+      <option value="medium" selected>Medium (10×10)</option>
+      <option value="hard">Hard (15×15)</option>
+    </select>
+  </header>
+  <main class="board-wrap">
+    <canvas id="board" aria-label="Shikaku board"></canvas>
+  </main>
+  <dialog id="solved-modal">
+    <p>Solved! 🎉</p>
+    <button id="btn-next" type="button">New puzzle</button>
+  </dialog>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
