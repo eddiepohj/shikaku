@@ -18,6 +18,26 @@ let puzzle = null;
 let state = null;
 let ui = null;
 let difficulty = 'medium';
+let nextPuzzle = null;       // { difficulty, puzzle } — prepared for the next "new board"
+let nextRequestSeq = 0;      // monotonic to ignore stale background tasks
+
+function prepareNextPuzzle(diff) {
+  const seq = ++nextRequestSeq;
+  // Defer to next macrotask so the current draw / interaction stays snappy.
+  // 15x15 generation is ~3ms; using setTimeout 0 keeps the main thread free briefly.
+  setTimeout(() => {
+    if (seq !== nextRequestSeq) return; // a newer request superseded us
+    const [w, h] = SIZES[diff];
+    try {
+      const p = generatePuzzle(w, h, (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
+      if (seq !== nextRequestSeq) return; // raced — discard
+      nextPuzzle = { difficulty: diff, puzzle: p };
+    } catch (err) {
+      // Generation failed; leave nextPuzzle as-is so live-generation falls back.
+      console.warn('Background puzzle generation failed', err);
+    }
+  }, 0);
+}
 
 function save() {
   const blob = {
@@ -48,10 +68,17 @@ function startNewPuzzle(diff = difficulty) {
   difficulty = diff;
   difficultySel.value = diff;
   const [w, h] = SIZES[diff];
-  puzzle = generatePuzzle(w, h, (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
+
+  if (nextPuzzle && nextPuzzle.difficulty === diff) {
+    puzzle = nextPuzzle.puzzle;
+    nextPuzzle = null;
+  } else {
+    puzzle = generatePuzzle(w, h, (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
+  }
   state = createState(puzzle);
   if (ui) ui.fit();
   save();
+  prepareNextPuzzle(diff);
 }
 
 function restoreOrNew() {
@@ -61,8 +88,9 @@ function restoreOrNew() {
     difficultySel.value = difficulty;
     puzzle = blob.puzzle;
     state = createState(puzzle, { rectangles: blob.rectangles || [] });
+    prepareNextPuzzle(difficulty);
   } else {
-    startNewPuzzle('medium');
+    startNewPuzzle('medium');   // startNewPuzzle already calls prepareNextPuzzle
   }
 }
 
@@ -108,6 +136,8 @@ difficultySel.addEventListener('change', (ev) => {
       return;
     }
   }
+  nextPuzzle = null;
+  nextRequestSeq++;
   startNewPuzzle(ev.target.value);
 });
 btnNext.addEventListener('click', () => { solvedModal.close(); startNewPuzzle(difficulty); });
