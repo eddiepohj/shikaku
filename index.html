@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#1A1A1A" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#F4EFE3" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#18171A" media="(prefers-color-scheme: dark)" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="app.css" />
@@ -14,15 +14,16 @@
 </head>
 <body>
   <header class="topbar">
+    <span class="wordmark" aria-hidden="true">shikaku</span>
     <button id="btn-new" type="button" aria-label="New board">New board</button>
     <button id="btn-undo" type="button" aria-label="Undo">Undo</button>
     <button id="btn-restart" type="button" aria-label="Restart">Restart</button>
     <button id="btn-check" type="button" aria-label="Check">Check</button>
-    <select id="difficulty" aria-label="Difficulty">
-      <option value="easy">Easy (7×7)</option>
-      <option value="medium" selected>Medium (10×10)</option>
-      <option value="hard">Hard (15×15)</option>
-    </select>
+    <div class="segment" role="group" aria-label="Difficulty">
+      <button type="button" id="diff-easy" aria-pressed="false">Easy</button>
+      <button type="button" id="diff-medium" aria-pressed="true">Medium</button>
+      <button type="button" id="diff-hard" aria-pressed="false">Hard</button>
+    </div>
   </header>
   <main class="board-wrap">
     <canvas id="board" aria-label="Shikaku board"></canvas>

@@ -1,17 +1,17 @@
 :root {
-  --bg: #FAF7F0;
-  --fg: #2A2A2A;
-  --grid: #2A2A2A;
-  --topbar-bg: #F1ECE0;
-  --error: #C04A3F;
+  --bg: #F4EFE3;
+  --fg: #1F1B17;
+  --grid: #1F1B17;
+  --topbar-bg: #ECE4D2;
+  --error: #B25441;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1A1A1A;
-    --fg: #E8E5DE;
-    --grid: #E8E5DE;
-    --topbar-bg: #232323;
-    --error: #E27970;
+    --bg: #18171A;
+    --fg: #ECE7DD;
+    --grid: #ECE7DD;
+    --topbar-bg: #221F25;
+    --error: #E08470;
   }
 }
 
@@ -52,6 +52,37 @@ body {
   padding: 6px 10px;
 }
 .topbar button:active { opacity: 0.6; }
+
+.wordmark {
+  font-family: ui-serif, "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-right: 8px;
+  text-transform: lowercase;
+}
+
+.segment {
+  display: inline-flex;
+  border: 1px solid var(--fg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.segment button {
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--fg);
+  padding: 6px 12px;
+  border-radius: 0;
+}
+.segment button:last-child { border-right: none; }
+.segment button[aria-pressed="true"] {
+  background: var(--fg);
+  color: var(--bg);
+}
+.segment button:active { opacity: 0.6; }
 
 .board-wrap {
   flex: 1 1 auto;
