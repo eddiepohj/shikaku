@@ -47,10 +47,26 @@ function tryPartition(width, height, rand) {
     const { r, c } = cell;
 
     const maxW = maxRunRight(r, c);
-    // Bias toward small rectangles to avoid pathological layouts.
-    const w = 1 + Math.floor(rand() * Math.min(maxW, 5));
+    // Bias w toward >= 2 when possible to avoid 1-area rectangles.
+    const wCap = Math.min(maxW, 5);
+    let w;
+    if (wCap === 1) {
+      w = 1;
+    } else {
+      // Pick w in [2, wCap].
+      w = 2 + Math.floor(rand() * (wCap - 1));
+    }
     const maxH = maxRunDown(r, c, w);
-    const h = 1 + Math.floor(rand() * Math.min(maxH, 5));
+    const hCap = Math.min(maxH, 5);
+    let h;
+    if (hCap === 1) {
+      h = 1;
+    } else if (w === 1) {
+      // Force h >= 2 to avoid 1x1 when geometry allows.
+      h = 2 + Math.floor(rand() * (hCap - 1));
+    } else {
+      h = 1 + Math.floor(rand() * hCap);
+    }
     if (w * h < 1) return null;
 
     const idx = rects.length;
@@ -58,6 +74,11 @@ function tryPartition(width, height, rand) {
       for (let cc = c; cc < c + w; cc++)
         grid[rr][cc] = idx;
     rects.push({ top: r, left: c, bottom: r + h - 1, right: c + w - 1 });
+  }
+  // Reject any partition containing a 1x1 rectangle (e.g. forced by a corner
+  // with maxW=1 AND maxH=1). The retry loop will try a different layout.
+  if (rects.some((r) => (r.bottom - r.top + 1) * (r.right - r.left + 1) === 1)) {
+    return null;
   }
   return rects;
 }
@@ -75,12 +96,12 @@ function placeClues(rects, rand) {
 
 export function generatePuzzle(width, height, seed = Date.now() & 0x7fffffff) {
   const rand = mulberry32(seed);
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < 1000; attempt++) {
     const rects = tryPartition(width, height, rand);
     if (!rects) continue;
     const clues = placeClues(rects, rand);
     const puzzle = { width, height, clues };
     if (countSolutions(puzzle) === 1) return puzzle;
   }
-  throw new Error(`Failed to generate a unique puzzle for ${width}x${height} after 200 attempts`);
+  throw new Error(`Failed to generate a unique puzzle for ${width}x${height} after 1000 attempts`);
 }

@@ -108,11 +108,21 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
     // Drag preview.
     if (drag) {
       const prev = rectFromAnchorTo(drag.anchor, drag.current);
-      const anchorClue = puzzle.clues.find((c) => c.row === drag.anchor.row && c.col === drag.anchor.col);
-      const otherRects = rects.filter((r) => !(r.anchor.row === drag.anchor.row && r.anchor.col === drag.anchor.col));
+      const cluesInside = puzzle.clues.filter(
+        (c) => c.row >= prev.top && c.row <= prev.bottom && c.col >= prev.left && c.col <= prev.right,
+      );
+      // For overlap check, exclude any rectangle whose clue sits inside the preview
+      // (so that re-drawing over an existing committed rect doesn't immediately tint red).
+      const insideAnchorKeys = new Set(cluesInside.map((c) => `${c.row},${c.col}`));
+      const otherRects = rects.filter((r) => !insideAnchorKeys.has(`${r.anchor.row},${r.anchor.col}`));
       const overlaps = otherRects.some((o) => rectsOverlap(o, prev));
-      const wrongArea = rectArea(prev) !== anchorClue.number;
-      ctx.fillStyle = (overlaps || wrongArea) ? errColor : (anchorClue.__previewColor || '#D9D9D9');
+      let invalid;
+      if (cluesInside.length !== 1) {
+        invalid = true;
+      } else {
+        invalid = overlaps || rectArea(prev) !== cluesInside[0].number;
+      }
+      ctx.fillStyle = invalid ? errColor : '#D9D9D9';
       ctx.globalAlpha = 0.45;
       ctx.fillRect(prev.left * cellSize, prev.top * cellSize, (prev.right - prev.left + 1) * cellSize, (prev.bottom - prev.top + 1) * cellSize);
       ctx.globalAlpha = 1;
@@ -141,9 +151,6 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
   function onPointerDown(ev) {
     const cell = cellAt(ev.clientX, ev.clientY);
     if (!cell) return;
-    const puzzle = getPuzzle();
-    const clue = puzzle.clues.find((c) => c.row === cell.row && c.col === cell.col);
-    if (!clue) return;
     canvas.setPointerCapture(ev.pointerId);
     drag = { anchor: cell, current: cell };
     draw();
@@ -162,32 +169,39 @@ export function createUI({ canvas, getState, getPuzzle, onCommit, onDelete }) {
   function onPointerUp(ev) {
     if (!drag) return;
     const anchor = drag.anchor;
-    const rect = rectFromAnchorTo(anchor, drag.current);
+    const current = drag.current;
+    const rect = rectFromAnchorTo(anchor, current);
     const isJustAnchor =
-      rect.top === anchor.row && rect.bottom === anchor.row &&
-      rect.left === anchor.col && rect.right === anchor.col;
+      rect.top === rect.bottom && rect.left === rect.right &&
+      rect.top === anchor.row && rect.left === anchor.col;
     drag = null;
     const puzzle = getPuzzle();
-    const clue = puzzle.clues.find((c) => c.row === anchor.row && c.col === anchor.col);
+    const state = getState();
 
-    // Delete: release on a 1x1 at the anchor when there's an existing rectangle
-    // and the clue number is not 1 (a 1-clue's only valid commit IS a 1x1).
-    if (isJustAnchor && clue.number !== 1) {
-      const existing = getState().rectangles().find(
-        (r) => r.anchor.row === anchor.row && r.anchor.col === anchor.col,
+    // Tap-to-delete: zero-distance pointerup inside a committed rectangle.
+    if (isJustAnchor) {
+      const existing = state.rectangles().find(
+        (r) => anchor.row >= r.top && anchor.row <= r.bottom &&
+               anchor.col >= r.left && anchor.col <= r.right,
       );
       if (existing && onDelete) {
-        onDelete(anchor);
+        onDelete(existing.anchor);
         return;
       }
     }
 
-    if (rectArea(rect) === clue.number) {
-      // Check overlap against other committed rectangles.
-      const state = getState();
-      const others = state.rectangles().filter((r) => !(r.anchor.row === anchor.row && r.anchor.col === anchor.col));
+    // Otherwise: commit if the preview contains exactly one clue, with matching
+    // area, and does not overlap any other committed rectangle.
+    const cluesInside = puzzle.clues.filter(
+      (c) => c.row >= rect.top && c.row <= rect.bottom && c.col >= rect.left && c.col <= rect.right,
+    );
+    if (cluesInside.length === 1 && rectArea(rect) === cluesInside[0].number) {
+      const clueAnchor = { row: cluesInside[0].row, col: cluesInside[0].col };
+      const others = state.rectangles().filter(
+        (r) => !(r.anchor.row === clueAnchor.row && r.anchor.col === clueAnchor.col),
+      );
       if (others.every((o) => !rectsOverlap(o, rect))) {
-        onCommit(anchor, rect);
+        onCommit(clueAnchor, rect);
         return;
       }
     }

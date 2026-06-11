@@ -34,3 +34,12 @@ test('generator varies with different seeds', () => {
   const b = generatePuzzle(7, 7, 2);
   assert.notDeepEqual(a.clues, b.clues);
 });
+
+test('generator never produces a clue with number 1', () => {
+  for (const seed of [1, 7, 42, 123, 999]) {
+    const puzzle = generatePuzzle(10, 10, seed);
+    for (const clue of puzzle.clues) {
+      assert.notEqual(clue.number, 1, `seed ${seed} produced a 1-clue at (${clue.row}, ${clue.col})`);
+    }
+  }
+});
