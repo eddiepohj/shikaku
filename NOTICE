@@ -1,0 +1,5 @@
+Shikaku
+Copyright 2026 Edvard Pohjavirta
+
+This product includes no vendored third-party software. The application uses only
+browser platform APIs and the Node.js standard library for its tests.

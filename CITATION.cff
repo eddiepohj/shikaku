@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Shikaku"
+abstract: "A Shikaku puzzle progressive web app with algorithmic puzzle generation and offline support."
+type: software
+authors:
+  - family-names: Pohjavirta
+    given-names: Edvard
+    email: "285586111+eddiepohj@users.noreply.github.com"
+    alias: eddiepohj
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/eddiepohj/shikaku"
